@@ -193,6 +193,12 @@ private:
       return 2;
     else if (status == 0xF8)
       return 1;
+    else if (status == 0xFA)
+      return 1;
+    else if (status == 0xFB)
+      return 1;
+    else if (status == 0xFC)
+      return 1;
     else if (status == 0xFE)
       return 1;
     else
