@@ -8,29 +8,31 @@
 
   #include <variant>
 
-namespace libremidi::jack
+NAMESPACE_LIBREMIDI::jack
 {
 
 // Create a JACK client which will be shared across objects
 struct shared_handler : public libremidi::shared_context
 {
+  const libjack& jack = libjack::instance();
+
   explicit shared_handler(std::string_view v)
   {
     midiin_callbacks.reserve(64);
     midiout_callbacks.reserve(64);
 
     jack_status_t status{};
-    client = jack_client_open(v.data(), JackNoStartServer, &status);
+    client = jack.client_open(v.data(), JackNoStartServer, &status);
     assert(client);
     assert(status == 0);
-    jack_set_process_callback(client, +[](jack_nframes_t cnt, void* ctx) -> int {
+    jack.set_process_callback(client, +[](jack_nframes_t cnt, void* ctx) -> int {
       ((shared_handler*)ctx)->jack_callback(cnt);
       return 0;
     }, this);
   }
 
-  virtual void start_processing() override { jack_activate(client); }
-  virtual void stop_processing() override { jack_deactivate(client); }
+  virtual void start_processing() override { jack.activate(client); }
+  virtual void stop_processing() override { jack.deactivate(client); }
 
   static shared_configurations make(std::string_view client_name)
   {
@@ -70,11 +72,10 @@ struct shared_handler : public libremidi::shared_context
       switch (ev.type)
       {
         case in_callback_added:
-          midiin_callbacks.push_back(
-              std::move(*std::get_if<libremidi::jack_callback>(&ev.payload)));
+          midiin_callbacks.push_back(std::move(*get_if<libremidi::jack_callback>(&ev.payload)));
           break;
         case in_callback_removed: {
-          auto idx = *std::get_if<int64_t>(&ev.payload);
+          auto idx = *get_if<int64_t>(&ev.payload);
           for (auto it = midiin_callbacks.begin(); it != midiin_callbacks.end();)
           {
             if (it->token == idx)
@@ -90,11 +91,10 @@ struct shared_handler : public libremidi::shared_context
           break;
         }
         case out_callback_added:
-          midiout_callbacks.push_back(
-              std::move(*std::get_if<libremidi::jack_callback>(&ev.payload)));
+          midiout_callbacks.push_back(std::move(*get_if<libremidi::jack_callback>(&ev.payload)));
           break;
         case out_callback_removed:
-          auto idx = *std::get_if<int64_t>(&ev.payload);
+          auto idx = *get_if<int64_t>(&ev.payload);
           for (auto it = midiout_callbacks.begin(); it != midiout_callbacks.end();)
           {
             if (it->token == idx)
@@ -122,8 +122,8 @@ struct shared_handler : public libremidi::shared_context
 
   ~shared_handler()
   {
-    jack_deactivate(client);
-    jack_client_close(client);
+    jack.deactivate(client);
+    jack.client_close(client);
   }
 
   jack_client_t* client{};
@@ -138,7 +138,7 @@ struct shared_handler : public libremidi::shared_context
   struct event
   {
     event_type type;
-    std::variant<libremidi::jack_callback, int64_t> payload;
+    libremidi_variant_alias::variant<libremidi::jack_callback, int64_t> payload;
   };
 
   boost::lockfree::spsc_queue<event> events{16};

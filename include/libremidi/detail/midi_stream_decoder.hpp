@@ -10,9 +10,9 @@
 #include <cstdint>
 #include <span>
 
-namespace libremidi
+NAMESPACE_LIBREMIDI
 {
-static inline int64_t system_ns() noexcept
+LIBREMIDI_STATIC int64_t system_ns() noexcept
 {
   namespace clk = std::chrono;
   return clk::duration_cast<clk::nanoseconds>(clk::steady_clock::now().time_since_epoch()).count();
@@ -425,9 +425,9 @@ private:
       }
 
       case CMIDI2_MESSAGE_TYPE_SYSTEM: {
+        auto status = cmidi2_ump_get_status_byte(bytes.data());
         if (this->configuration.ignore_timing)
         {
-          auto status = cmidi2_ump_get_system_message_byte2(bytes.data());
           switch (status)
           {
             case CMIDI2_SYSTEM_STATUS_MIDI_TIME_CODE:
@@ -439,7 +439,6 @@ private:
 
         if (this->configuration.ignore_sensing)
         {
-          auto status = cmidi2_ump_get_system_message_byte2(bytes.data());
           if (status == CMIDI2_SYSTEM_STATUS_ACTIVE_SENSING)
             return;
         }

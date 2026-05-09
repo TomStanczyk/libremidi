@@ -25,7 +25,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-namespace libremidi
+NAMESPACE_LIBREMIDI
 {
 template <typename K, typename V>
 using hash_map = std::unordered_map<K, V>;
@@ -172,7 +172,9 @@ struct pipewire_context
 
     // Add a manual 1ms event loop iteration at the end of
     // ctor to ensure synchronous clients will still see the ports
+    pw_loop_enter(this->lp);
     pw_loop_iterate(this->lp, 1);
+    pw_loop_leave(this->lp);
   }
 
   void initialize_observation()

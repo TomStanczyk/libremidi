@@ -3,7 +3,7 @@
 
 #include <tuple>
 
-#if !__has_include(<weak_libjack.h>) && !__has_include(<jack/jack.h>)
+#if !__has_include(<jack/jack.h>)
   #if defined(LIBREMIDI_JACK)
     #undef LIBREMIDI_JACK
   #endif
@@ -50,6 +50,10 @@
   #include <libremidi/backends/winmm.hpp>
 #endif
 
+#if defined(LIBREMIDI_KDMAPI)
+  #include <libremidi/backends/kdmapi.hpp>
+#endif
+
 #if defined(LIBREMIDI_WINUWP)
   #include <libremidi/backends/winuwp.hpp>
 #endif
@@ -73,11 +77,14 @@
   #include <libremidi/backends/network_ump.hpp>
 #endif
 
+#include <libremidi/backends/rawio.hpp>
+#include <libremidi/backends/rawio_ump.hpp>
+
 #if defined(LIBREMIDI_ANDROID)
   #include <libremidi/backends/android/android.hpp>
 #endif
 
-namespace libremidi
+NAMESPACE_LIBREMIDI
 {
 // The order here will control the order of the API search in
 // the constructor.
@@ -89,7 +96,7 @@ constexpr auto make_tl(unused, Args...)
 
 namespace midi1
 {
-static constexpr auto available_backends = make_tl(
+LIBREMIDI_STATIC constexpr auto available_backends = make_tl(
     0
 #if defined(LIBREMIDI_ALSA)
     ,
@@ -106,6 +113,10 @@ static constexpr auto available_backends = make_tl(
 #if defined(LIBREMIDI_WINMM)
     ,
     winmm_backend{}
+#endif
+#if defined(LIBREMIDI_KDMAPI)
+    ,
+    kdmapi_backend{}
 #endif
 #if defined(LIBREMIDI_WINUWP)
     ,
@@ -136,6 +147,7 @@ static constexpr auto available_backends = make_tl(
     android::backend{}
 #endif
     ,
+    rawio::backend{},
     dummy_backend{});
 
 // There should always be at least one back-end.
@@ -159,7 +171,7 @@ auto for_backend(libremidi::API api, F&& f)
 
 namespace midi2
 {
-static constexpr auto available_backends = make_tl(
+LIBREMIDI_STATIC constexpr auto available_backends = make_tl(
     0
 #if defined(LIBREMIDI_ALSA) && LIBREMIDI_ALSA_HAS_UMP
     ,
@@ -186,6 +198,7 @@ static constexpr auto available_backends = make_tl(
     pipewire_ump::backend{}
 #endif
     ,
+    rawio_ump::backend{},
     dummy_backend{});
 
 // There should always be at least one back-end.
@@ -226,7 +239,7 @@ auto for_backend(libremidi::API api, F&& f)
 void for_input_configuration(auto f, libremidi::input_api_configuration& api_conf)
 {
   auto from_api = [&]<typename T>(T& /*backend*/) mutable {
-    if (auto conf = std::get_if<typename T::midi_in_configuration>(&api_conf))
+    if (auto conf = get_if<typename T::midi_in_configuration>(&api_conf))
     {
       f(*conf);
       return true;
@@ -241,7 +254,7 @@ void for_input_configuration(auto f, libremidi::input_api_configuration& api_con
 void for_output_configuration(auto f, libremidi::output_api_configuration& api_conf)
 {
   auto from_api = [&]<typename T>(T& /*backend*/) mutable {
-    if (auto conf = std::get_if<typename T::midi_out_configuration>(&api_conf))
+    if (auto conf = get_if<typename T::midi_out_configuration>(&api_conf))
     {
       f(*conf);
       return true;
@@ -256,7 +269,7 @@ void for_output_configuration(auto f, libremidi::output_api_configuration& api_c
 void for_observer_configuration(auto f, libremidi::observer_api_configuration& api_conf)
 {
   auto from_api = [&]<typename T>(T& /*backend*/) mutable {
-    if (auto conf = std::get_if<typename T::midi_observer_configuration>(&api_conf))
+    if (auto conf = get_if<typename T::midi_observer_configuration>(&api_conf))
     {
       f(*conf);
       return true;

@@ -2,13 +2,19 @@
 
 #include <libremidi/libremidi.hpp>
 
+#if defined(_WIN32) && __has_include(<winrt/base.h>)
+  #include <winrt/base.h>
+#endif
+
 #include <midi/capability_inquiry.h>
 #include <midi/midi1_byte_stream.h>
 #include <midi/sysex_collector.h>
 #include <midi/universal_packet.h>
 
 #include <bitset>
+#include <chrono>
 #include <cstdlib>
+#include <thread>
 #include <iostream>
 
 struct midi_ci_processor
@@ -163,7 +169,7 @@ struct midi_ci_processor
       case end_of_file:
         std::cerr << "[sysex] end_of_file" << std::endl;
         break;
-      case wait:
+      case midi::universal_sysex::type::wait:
         std::cerr << "[sysex] wait" << std::endl;
         break;
       case cancel:
@@ -330,6 +336,11 @@ struct midi_ci_processor
 int main()
 try
 {
+#if defined(_WIN32) && __has_include(<winrt/base.h>)
+  // Necessary for using WinUWP and WinMIDI, must be done as early as possible in your main()
+  winrt::init_apartment();
+#endif
+
   midi_ci_processor processor;
 
   processor.open();
@@ -347,7 +358,7 @@ try
     auto inquiry = midi::ci::make_discovery_inquiry(my_muid, id, 0x02, 512);
 
     processor.midiout.send_ump(inquiry);
-    sleep(2);
+    std::this_thread::sleep_for(std::chrono::seconds(2));
   }
 
   char input;

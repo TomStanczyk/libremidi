@@ -43,6 +43,18 @@ target_compile_definitions(midifile_write_test PRIVATE "LIBREMIDI_TEST_CORPUS=\"
 add_executable(midifile_write_tracks_test tests/integration/midifile_write_tracks.cpp)
 target_link_libraries(midifile_write_tracks_test PRIVATE libremidi Catch2::Catch2WithMain)
 
+add_executable(protocols_test tests/unit/protocols.cpp)
+target_link_libraries(protocols_test PRIVATE libremidi Catch2::Catch2WithMain)
+
+add_executable(midi_stream_decoder_test tests/unit/midi_stream_decoder.cpp)
+target_link_libraries(midi_stream_decoder_test PRIVATE libremidi Catch2::Catch2WithMain)
+
+add_executable(midi_timing_test tests/unit/midi_timing.cpp)
+target_link_libraries(midi_timing_test PRIVATE libremidi Catch2::Catch2WithMain)
+
+add_executable(rawio_test tests/unit/rawio.cpp)
+target_link_libraries(rawio_test PRIVATE libremidi Catch2::Catch2WithMain)
+
 include(CTest)
 add_test(NAME conversion_test COMMAND conversion_test)
 add_test(NAME error_test COMMAND error_test)
@@ -51,3 +63,7 @@ add_test(NAME midiout_test COMMAND midiout_test --allow-running-no-tests)
 add_test(NAME midifile_read_test COMMAND midifile_read_test)
 add_test(NAME midifile_write_test COMMAND midifile_write_test)
 add_test(NAME midifile_write_tracks_test COMMAND midifile_write_tracks_test)
+add_test(NAME protocols_test COMMAND protocols_test)
+add_test(NAME midi_stream_decoder_test COMMAND midi_stream_decoder_test)
+add_test(NAME midi_timing_test COMMAND midi_timing_test)
+add_test(NAME rawio_test COMMAND rawio_test)

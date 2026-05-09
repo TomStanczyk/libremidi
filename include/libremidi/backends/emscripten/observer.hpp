@@ -5,7 +5,7 @@
 
 #include <vector>
 
-namespace libremidi
+NAMESPACE_LIBREMIDI
 {
 class observer_emscripten final : public observer_api
 {
@@ -22,8 +22,9 @@ public:
       observer_configuration&& conf, emscripten_observer_configuration&& apiconf);
   ~observer_emscripten();
 
-  void
-  update(const std::vector<device>& current_inputs, const std::vector<device>& current_outputs);
+  void update(
+      const std::vector<device>& current_inputs, const std::vector<device>& current_outputs,
+      bool notify);
 
   libremidi::API get_current_api() const noexcept override;
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <libremidi/detail/polyfill.hpp>
 #include <libremidi/error_handler.hpp>
 #include <libremidi/message.hpp>
 
@@ -12,13 +13,8 @@
 #include <functional>
 #include <span>
 
-namespace libremidi
+NAMESPACE_LIBREMIDI
 {
-static constexpr auto to_underlying(auto e)
-{
-  return static_cast<std::underlying_type_t<decltype(e)>>(e);
-}
-
 // A clean-room reverse-engineered remote control protocol compatible with many hardware devices.
 // Thanks https://github.com/NicoG60/TouchMCU !
 struct remote_control_protocol

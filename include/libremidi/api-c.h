@@ -1,13 +1,15 @@
 #pragma once
+#ifndef LIBREMIDI_API_C_H
+#define LIBREMIDI_API_C_H
 
-#if __cplusplus
+#if __cplusplus && !defined(LIBREMIDI_MODULE_BUILD)
 extern "C" {
 #endif
 
 //! MIDI API specifier arguments.
 //! To get information on which feature is supported by each back-end, check their backend file
 //! in e.g. backends/winmm.hpp, etc.
-typedef enum libremidi_api
+enum libremidi_api
 {
   UNSPECIFIED = 0x0, /*!< Search for a working compiled API. */
 
@@ -23,6 +25,8 @@ typedef enum libremidi_api
   KEYBOARD,       /*!< Computer keyboard input */
   NETWORK,        /*!< MIDI over IP */
   ANDROID_AMIDI,  /*!< Android AMidi API */
+  KDMAPI,         /*!< OmniMIDI KDMAPI (Windows) */
+  RAW_IO,         /*!< User-provided raw byte I/O (serial, SPI, USB, etc.) */
 
   // MIDI 2.0 APIs
   ALSA_RAW_UMP = 0x1000, /*!< Raw ALSA API for MIDI 2.0 */
@@ -33,10 +37,14 @@ typedef enum libremidi_api
   NETWORK_UMP,           /*!< MIDI2 over IP */
   JACK_UMP,              /*!< MIDI2 over JACK, type "32 bit raw UMP". Requires PipeWire v1.4+. */
   PIPEWIRE_UMP,          /*!< MIDI2 over PipeWire. Requires v1.4+. */
+  RAW_IO_UMP,            /*!< User-provided raw UMP I/O (serial, SPI, USB, etc.) */
 
   DUMMY = 0xFFFF /*!< A compilable but non-functional API. */
-} libremidi_api;
+};
 
-#if __cplusplus
+typedef enum libremidi_api libremidi_api;
+
+#if __cplusplus && !defined(LIBREMIDI_MODULE_BUILD)
 }
+#endif
 #endif

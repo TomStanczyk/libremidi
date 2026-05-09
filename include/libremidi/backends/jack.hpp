@@ -13,7 +13,7 @@
 //
 //  *********************************************************************//
 
-namespace libremidi
+NAMESPACE_LIBREMIDI
 {
 struct jack_backend
 {
@@ -29,11 +29,7 @@ struct jack_backend
 
   static inline bool available() noexcept
   {
-#if LIBREMIDI_WEAKJACK
-    return WeakJack::instance().available() == 0;
-#else
-    return true;
-#endif
+    return libjack::instance().available;
   }
 };
 }

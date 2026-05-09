@@ -11,7 +11,12 @@
 #include <atomic>
 #include <thread>
 
-namespace libremidi
+#if defined(__clang__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wsign-compare"
+#endif
+
+NAMESPACE_LIBREMIDI
 {
 struct pipewire_helpers
 {
@@ -151,10 +156,17 @@ struct pipewire_helpers
   {
     // Note: called from a std::jthread.
     assert(this->global_context);
+    auto lp = this->global_context->lp;
+    if (!lp)
+      return;
+
     if (int fd = this->global_context->get_fd(); fd != -1)
     {
       fds[0] = {.fd = fd, .events = POLLIN, .revents = 0};
       current_state = poll_state::in_poll;
+
+      // pw_loop_iterate requires the loop to be entered first.
+      pw_loop_enter(lp);
 
       for (;;)
       {
@@ -169,13 +181,10 @@ struct pipewire_helpers
         // Check pipewire fd:
         if (fds[0].revents & POLLIN)
         {
-          if (auto lp = this->global_context->lp)
+          int result = pw_loop_iterate(lp, 0);
+          if (result < 0)
           {
-            int result = pw_loop_iterate(lp, 0);
-            if (result < 0)
-            {
-              LIBREMIDI_LOG(spa_strerror(result));
-            }
+            LIBREMIDI_LOG(spa_strerror(result));
           }
           fds[0].revents = 0;
         }
@@ -186,6 +195,8 @@ struct pipewire_helpers
           break;
         }
       }
+
+      pw_loop_leave(lp);
     }
     current_state = poll_state::not_in_poll;
   }
@@ -217,6 +228,7 @@ struct pipewire_helpers
     return stdx::error{};
   }
 
+  template <libremidi::API Api>
   void add_callbacks(std::string format, const observer_configuration& conf)
   {
     assert(global_context);
@@ -232,12 +244,12 @@ struct pipewire_helpers
         if (port.direction == SPA_DIRECTION_INPUT)
         {
           if (conf.output_added)
-            conf.output_added(to_port_info<SPA_DIRECTION_INPUT>(port));
+            conf.output_added(to_port_info<SPA_DIRECTION_INPUT, Api>(port));
         }
         else
         {
           if (conf.input_added)
-            conf.input_added(to_port_info<SPA_DIRECTION_OUTPUT>(port));
+            conf.input_added(to_port_info<SPA_DIRECTION_OUTPUT, Api>(port));
         }
       }
     };
@@ -254,12 +266,12 @@ struct pipewire_helpers
         if (port.direction == SPA_DIRECTION_INPUT)
         {
           if (conf.output_removed)
-            conf.output_removed(to_port_info<SPA_DIRECTION_INPUT>(port));
+            conf.output_removed(to_port_info<SPA_DIRECTION_INPUT, Api>(port));
         }
         else
         {
           if (conf.input_removed)
-            conf.input_removed(to_port_info<SPA_DIRECTION_OUTPUT>(port));
+            conf.input_removed(to_port_info<SPA_DIRECTION_OUTPUT, Api>(port));
         }
       }
     };
@@ -341,7 +353,11 @@ struct pipewire_helpers
   {
     // Wait for the pipewire server to send us back our node's info
     for (int i = 0; i < 1000; i++)
+    {
       this->filter->synchronize_node();
+      if (this->filter->filter_node_id() != 4294967295)
+        break;
+    }
 
     auto this_node = this->filter->filter_node_id();
     auto& midi = this->global_context->current_graph.software_midi;
@@ -374,7 +390,11 @@ struct pipewire_helpers
   {
     // Wait for the pipewire server to send us back our node's info
     for (int i = 0; i < 1000; i++)
+    {
       this->filter->synchronize_node();
+      if (this->filter->filter_node_id() != 4294967295)
+        break;
+    }
 
     auto this_node = this->filter->filter_node_id();
     auto& midi = this->global_context->current_graph.software_midi;
@@ -407,7 +427,7 @@ struct pipewire_helpers
     return stdx::error{};
   }
 
-  template <spa_direction Direction>
+  template <spa_direction Direction, libremidi::API Api>
   static auto to_port_info(const pipewire_context::port_info& port)
       -> std::conditional_t<Direction == SPA_DIRECTION_OUTPUT, input_port, output_port>
   {
@@ -424,6 +444,7 @@ struct pipewire_helpers
     }
 
     return {{
+        .api = Api,
         .client = 0,
         .port = port.id,
         .manufacturer = "",
@@ -435,7 +456,7 @@ struct pipewire_helpers
 
   // Note: keep in mind that an "input" port for us (e.g. a keyboard that goes to the computer)
   // is an "output" port from the point of view of pipewire as data will come out of it
-  template <spa_direction Direction>
+  template <spa_direction Direction, libremidi::API Api>
   static auto get_ports(
       std::string_view format, const observer_configuration& conf,
       const pipewire_context& ctx) noexcept
@@ -454,7 +475,7 @@ struct pipewire_helpers
                (Direction == SPA_DIRECTION_INPUT ? node.second.inputs : node.second.outputs))
           {
             if (port.format.find(format) != std::string::npos)
-              ret.push_back(to_port_info<Direction>(port));
+              ret.push_back(to_port_info<Direction, Api>(port));
           }
         }
 
@@ -465,7 +486,7 @@ struct pipewire_helpers
                (Direction == SPA_DIRECTION_INPUT ? node.second.inputs : node.second.outputs))
           {
             if (port.format.find(format) != std::string::npos)
-              ret.push_back(to_port_info<Direction>(port));
+              ret.push_back(to_port_info<Direction, Api>(port));
           }
         }
     }
@@ -474,3 +495,7 @@ struct pipewire_helpers
   }
 };
 }
+
+#if defined(__clang__)
+  #pragma clang diagnostic pop
+#endif
